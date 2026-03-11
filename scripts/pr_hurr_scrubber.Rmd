@@ -1,0 +1,228 @@
+---
+Project: "Comprehensive Assessment: Puerto Rico Hurricane Mortality"
+Script:  "pr_hurr_scrubber.R"
+Purpose: "Script to ingest PDF data and clean it so that is suitable for queries"
+Author:  "Larry Mannings"
+Date:    "2026-03-06"
+---
+
+
+
+**Part I --- Preparation ---**
+
+```{r prep, message=FALSE, warning=FALSE}
+
+# 1. Clear and set the environment
+
+rm(list = ls())
+options(digits = 3)    # report 3 significant digits
+
+# 2. Load libraries
+
+library(tidyverse)  # Data manipulation
+library(pdftools)   # Extract text from a PDF file
+library(stringr)    # wrapper function for commmon string operations
+
+# 3. Global variables / paths
+INPUT_FILE <- system.file("extdata", "RD-Mortality-Report_2015-18-180531.pdf", package="dslabs")
+```
+
+**Part II --- Data Wrangling ---**
+
+This section walks through step by step the process of extracting data from a demographics PDF tracking Puerto Rico mortality data and converting this data into a tidy format.
+
+*1. Find and open the the file directly from RStudio (Windows executable)*
+```{r results='hide'}
+
+system("cmd.exe", input = paste("start", INPUT_FILE))
+```
+
+Inspection of the file shows that it is a PDF file with tables and graphs. Extraction of the data seems feasible.
+
+*2. Read the PDF file and store the results in an object called `txt`.*
+
+```{r message=FALSE, warning=FALSE}
+txt <- pdf_text(INPUT_FILE)
+```
+
+Inspection of the object `txt` reveals a character string of length 12 (number of
+pages) corresponding to the text on page. The mortality data is in there somewhere.
+
+
+*3. Extract the ninth page from the object `txt` (txt[9]), and split the string into separate substrings at the occurence of a pattern match (\n)*
+```{r message=FALSE, warning=FALSE}
+x <- str_split(txt[9], "\\n")   # return a list of substrings
+str(x)  # display the structure of the object x
+```
+
+It can be observed that the object `x` is a list of size 1 containing a character string of 41 elements. 
+
+*4. Lets look at the contents of the list item.*
+```{r message=FALSE, warning=FALSE}
+s <- x[[1]] # assign the contents of the first list element to s
+str(s)  # display the structure of the object s
+```
+
+*5. Now lets print a the first part of the object `s`*
+
+```{r message=FALSE, warning=FALSE}
+
+head(s) #display first 6 elements of the vector
+```
+
+When substrings in s we obtained above, we see white space before and after the other characters. These will need to be trimmed before attempting to split the substrings further.
+
+*6. Trim spaces at the start and end of strings in `s` and assign the result to `s` again.*
+
+```{r message=FALSE, warning=FALSE}
+s <- str_trim(s)    # remove white space from start and end of all substrings
+head(s)
+```
+
+Now we want to identify the header row by searching for the index of rows that contain header data. We know the header row contains years, so we'll start there.
+
+*7. Find the row with header data and assign to object `header_index`*
+```{r message=FALSE, warning=FALSE}
+header_index <- str_which(s, "2015")[1] # find index of first row containing "2015"
+header_index
+```
+
+We want to extract two objects from the header row; month will store the month and header will store the column names
+
+*8. Save the content of the header row into an object called header, then use string operations to extract the objects we need.*
+```{r message=FALSE, warning=FALSE}
+header <- s[header_index] # extract the string with header data from s
+header <- str_split(header, "\\s+", simplify = TRUE) # split header into substrings separated by one or more spaces
+month <- header[1]  # assign first element of header to month
+header <- header[-1] # remove first element from the header vector
+```
+
+Let's look at the tail data of the s object
+```{r message=FALSE, warning=FALSE}
+tail(s)
+```
+
+Notice that towards the end of the page defined by `s` there is a row containing "Total" followed by rows containing other summary statistics. 
+
+*9. Create an object called tail_index containing the index of the "Total" entry*
+```{r message=FALSE, warning=FALSE}
+tail_index <- str_which(s, "Total") # find index of row containing "Total"
+tail_index
+```
+
+Because the PDF page contains graphs with numbers, some of the rows of `s` have just one number (corresponding to the numbers in the y-axis of the plot)
+
+*10. Create an object `n` that contains the count of numbers in each row*
+
+```{r message=FALSE, warning=FALSE}
+n <- str_count(s, "\\d+")   # count the number of numbers in string row
+n[n == 1]  # return the number of rows with only one number
+```
+
+We are now ready to remove entries from the rows that we know we don't need.
+
+*11. Remove the entry `header_index` and everything before it. Also remove entries with only one number and the tail_index and all content that comes after it.*
+
+```{r message=FALSE, warning=FALSE}
+num_index <- which(n == 1) # return the indices of the s vector that have only one number
+s_trunc <- s[-c(1:header_index, num_index, tail_index:length(s))] #keep all 
+# elements in s except for specified indices
+length(s_trunc) # return the length of truncated vector
+```
+
+We are now ready to remove all text that is not a digit or space. You want to use regular expressions (*regex*) and `str_remove_all()` function here.
+
+*12. Remove all text from `s_trunc` that is not either a number or a space*
+```{r message=FALSE, warning=FALSE}
+s <- str_remove_all(s_trunc, "[^\\d\\s]")
+head(s, 10) # display first 10 lines of s
+```
+
+Inspecting s again, we see that data corresponding to useful information from PDF table corresponds to the first (date) and second through fifth (mortality count) columns. Now we want to convert the `s` object into a data matrix containing just the day and mortality count data:
+
+```{r message=FALSE, warning=FALSE}
+s <- str_split_fixed(s, "\\s+", n = 6)[,1:5] # convert string vector into data matrix
+```
+
+We are almost ready to finish. We need to add the column names for day and mortality back to the matrix. we also want to add a column for the month and convert all vales to numeric.
+
+*13. Add column names `date` and header. Add column for `month`. Convert all values to numeric.*
+
+```{r message=FALSE, warning=FALSE}
+colnames(s) <- c("day", header) # set column names for date and mortality data columns
+m <- as.matrix(rep(month, times = length(s[,1]))) # instantiate month column
+colnames(m) <- ("month")
+s <- cbind(m, s) # add month column to s
+tab <- as.tibble(s) |> mutate_at(-1, parse_number) # convert all but month data to numeric
+```
+
+Our table is now suitable for querying using data manipulation grammar
+
+*13a. Compute the mean number of deaths per day in Sep 2015*
+```{r message=FALSE, warning=FALSE}
+mean(tab$"2015")
+```
+
+*13b. What is the mean number of deaths per day in Sep. 2016*
+```{r message=FALSE, warning=FALSE}
+mean(tab$"2016")
+```
+
+*13c. What was the mean number of deaths per day from September 1-19, 2017, before the hurricane hit?*
+```{r message=FALSE, warning=FALSE}
+mean(tab$"2017"[1:19])
+```
+
+*13d. What was the mean number of deaths per day from September 20-30, 2017, after the hurricane hit?*
+```{r message=FALSE, warning=FALSE}
+mean(tab$"2017"[20:30])
+```
+
+Let's finish up by changing `tab` to a tidy format.
+
+*13. Gather columns into key-value pairs. Specifically, gather all the separate year columns and stack them vertically. Associate the respective mortality count as the Value data.*
+```{r message=FALSE, warning=FALSE}
+tab2 <- tab %>% gather(year, deaths, -c(day, month)) %>%
+    mutate(deaths = as.numeric(deaths))
+tab2
+```
+
+**Part III  --- Visualizing the data ---**
+
+Lastly, we plot the tidy data to help us answer key questions related to how mortality data adjacent to the date Hurricane Maria made landfall compare with data from unaffected dates.
+
+
+*14. Make a plot of deaths versus day with color to denote year. Exclude 2018  since we have no data. Add a vertical line at day 20, the day that Hurricane María hit in 2017.*
+```{r fig.align = "center", message=FALSE, warning=FALSE}
+tab_2015 <- tab2 |> filter(year == 2015) # 2015 data
+tab_2016 <- tab2 |> filter(year == 2016) # 2016 data
+tab_2017 <- tab2 |> filter(year == 2017) # 2017 data
+
+plot(tab_2015$day, tab_2015$deaths, # Plot Dates vs. # of Deaths (2015)
+    col = "blue",
+    pch = 16,
+    xlab = "Month Date", 
+    ylab = "Number of Deaths",
+    main = "Comparison of Deaths: 2015 to 2017",
+    ylim = c(0, max(tab_2015$deaths, tab_2016$deaths, tab_2017$deaths))) 
+points(tab_2016$day, tab_2016$deaths, # overlay 2016 data
+       col = "green",
+       pch = 16) 
+points(tab_2017$day, tab_2017$deaths, # overlay 2017 data
+       pch = 16,
+       col = "orange")
+abline(v = 20, col = "red")  # Insert vertical line to mark Hurr. Maria date
+legend("right", legend = c("2015 Data", "2016 Data", "2017 Data"),
+       col = c("blue", "green", "orange"),
+       pch = 16)
+```
+
+From observing the plot above, we can make the following observations:
+
+* September 2015 and 2016 deaths by day are roughly equal to each other.
+* After the hurricane in September 2017, there were over 100 deaths per day every day for the rest of the month.
+* No days before September 20, 2017 have over 100 deaths per day.
+
+**Part IV  --- Conclusion ---**
+
+With consideration of the empirical evidence pertaining to mortality data adjacent to date Hurricane Maria made landfall, it can be concluded that the hurricane had an _*immediate*_ impact on daily mortality in comparison to unaffected days.
