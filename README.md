@@ -36,11 +36,11 @@ The following libraries and options are required to complete the assignment
 >
 > `library(knitr)`  powers R Markdown by handling the execution of embedded R code
 >
-> `library(kableExtra)  extends the basic functionality of tables produced by the `knitr` package
+> `library(kableExtra)`  extends the basic functionality of tables produced by the `knitr` package
 >
-> library(digest) provides functions that creates unique “signatures” (hash sums) that represent input data
+> `library(digest)` provides functions that creates unique “signatures” (hash sums) that represent input data
 >
-> library(googledrive)  Allows interaction with Google Drive directly from R
+> `library(googledrive)`  Allows interaction with Google Drive directly from R
 
 ## Version Control
 
