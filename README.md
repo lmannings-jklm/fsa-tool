@@ -6,7 +6,7 @@
 
 The triple tax advantage of a [Health Savings Account](https://www.healthcare.gov/high-deductible-health-plan/) (HSA) means that your initial contributions are tax-deductible, your invested balance grows tax-free, and any withdrawals made for qualified medical expenses are completely exempt from income taxes. However, in order to capitalize on the third HSA tax advantage (Tax-Free Withdrawals), one would need to establish a record archiving process and environment to provide proof that any out-of-pocket reimbursements were valid. This proof is required to satisfy a potential IRS audit and avoid the 20% non-qualified withdrawal penalty.
 
-Maintaining digital-first approach for our record keeping and using a secured cloud storage such as Google Drive as a repository makes this process easy to maintain. Collecting the receipts for provider appointments and prescriptions is relatively straightforward as there is an Explanation of Benefits documented with our health care insurance account claim summary or some other type of billing statement for medical services provided. What is a bit more complicated to track down are itemized purchases of Flexible Spending Account (FSA) Eligible Expenses. I you don't retain or digitally archive receipts for these purchases frequently, obtaining a reimbursement does not appear possible for a large number of such items. One source of comfort is that online stores such as Amazon allow you to download your order history, so obtaining records of FSA Eligible Expenses appear to be within reach. While a PDF invoice is the required format for proof of purchase, navigating the order history aids in finding the desired order numbers corresponding to the qualified expenses, which can be used to view the invoice on the online store.
+Maintaining digital-first approach for our record keeping and using a secured cloud storage such as Google Drive as a repository makes this process easy to maintain. Collecting the receipts for provider appointments and prescriptions is relatively straightforward as there is an Explanation of Benefits documented with our health care insurance account claim summary or some other type of billing statement for medical services provided. What is a bit more complicated to track down are itemized purchases of Flexible Spending Account (FSA) Eligible Expenses. If you don't retain or digitally archive receipts for these purchases frequently, obtaining a reimbursement does not appear possible for a large number of such items. One source of comfort is that online stores such as **Amazon.com** allow you to download your order history, so obtaining records of FSA Eligible Expenses appear to be within reach. While a PDF invoice is the required format for proof of purchase, navigating the order history aids in finding the desired order numbers corresponding to the qualified expenses, which can be used to view the invoice on the online store.
 
 It is worthwhile to explore how one goes about converting Amazon Order History into actionable data that can be queried to yield only the purchase orders that contain FSA eligible data. It should also be noted that this order history will contain personally identifiable information such as shipping/billing addresses, payment methods, shopping habits and indicators of health conditions. Some additional work will be required to sanitize the data to make it safe for a public walkthrough while also keeping it useful.
 
@@ -44,7 +44,7 @@ The following libraries and options are required to complete the assignment
 
 ## Version Control
 
-GitHub repository for code archival and collaboration
+GitHub repository for code archival and collaboration.
 
 # Project Resources & Infrastructure
 
@@ -70,48 +70,36 @@ To maintain a single source of truth and streamline project management, all non-
 
 ## Source Data
 
-The source data for this project can be found in the `extdata` directory of the **dslabs** package, which contains the daily mortality data for Puerto Rico from Jan 1, 2015 to May 31, 2018.
+The source data for this project is Amazon order history that must be requested and downloaded from the **Amazon.com Privacy Data Central** and requires an account login. Once requested and available, the dataset format can be downloaded in `.csv` format. For the primary case study, the scope of the data pertains to two individual Amazon.com accounts with order history data extending back to January 1<sup>st</sup> , 2019.
 
 ## Data Acquisition
 
-Once the dslabs package is installed, the file is located in the package's external data directory, accessed in R using a command like this:
-
-> `fn <- system.file("extdata", "RD-Mortality-Report_2015-18-180531.pdf", package="dslabs")`
+The source data for each user must be uploaded manually to the privacy access controlled project folder `/Secure_client_data_PII`. The source data will be manipulated in the '/data` folder of the local R project repository, so the folder `.gitignore` file to ensure sensitive data never makes it to GitHub repository.
 
 ## Data Preprocessing
 
-The source data is not presumed to meet [**tidy data** standards](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html). Additional data wrangling will likely be required.
+The source data is not presumed to meet [**tidy data** standards](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html). Additional data wrangling will be required.
 
 # Project Structure
 
 Project Repository structure is outlined below.
 
 ``` text
-pr-hurr-mortality
-│   header-photo.png
-│   README.md
-│
 ├───data
-│
 ├───docs
-│
 ├───notebooks
-│       RD-Mortality-Report_2015-18-180531.pdf
-│
+├───renv
 ├───scripts
-│       pr_hurr_scrubber.html
-│       pr_hurr_scrubber.R
-│       pr_hurr_scrubber.Rmd
-│
+├───secrets
 └───src
 ```
 
 # Results and Evaluation
 
-The project results are captured in the R markdown file [**pr_hurr_scrubber.Rmd**](https://github.com/lmannings-jklm/pr-hurr-mortality/blob/main/scripts/pr_hurr_scrubber.Rmd), which is included in this repository.
+The project results are captured in the R markdown file **To be completed**, which is included in this repository.
 
 # Acknowledgements / References
 
-This project was originally constructed and submitted towards completion of requirements for the [**HarvardX PH125.6x Data Science: Wrangling**](https://www.edx.org/learn/data-science/harvard-university-data-science-wrangling) certificate, in March 2026.
-
 Image Credits - The project header image was generated using Google Gemini 3 Flash (Engine: Nano Banana 2).
+
+[**IRS Publication 502: Medical and Dental Expenses**](https://www.irs.gov/forms-pubs/about-publication-502)  Explains the itemized deduction for medical and dental expenses that you claim on your tax form.     
