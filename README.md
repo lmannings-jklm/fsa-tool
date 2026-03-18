@@ -40,11 +40,11 @@ The following libraries and options are required to complete the assignment
 >
 > `library(digest)` provides functions that creates unique “signatures” (hash sums) that represent input data
 >
-> `library(googledrive)`  Allows interaction with Google Drive directly from R
+> `library(googledrive)`  allows interaction with Google Drive directly from R
 >
-> `library(usethis)`  Automates repetitive tasks that arise during project setup and development
+> `library(usethis)`  automates repetitive tasks that arise during project setup and development
 >
-> `library(renv)` Helps you create reproducible environments for your R projects
+> `library(renv)` helps you create reproducible environments for your R projects
 
 ## Version Control
 
