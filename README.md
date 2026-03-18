@@ -2,7 +2,7 @@
 
 # R Project: Transform Amazon Order History for FSA Order History
 
-## Introduction
+# Introduction
 
 The triple tax advantage of a [Health Savings Account](https://www.healthcare.gov/high-deductible-health-plan/) (HSA) means that your initial contributions are tax-deductible, your invested balance grows tax-free, and any withdrawals made for qualified medical expenses are completely exempt from income taxes. However, in order to capitalize on the third HSA tax advantage (Tax-Free Withdrawals), one would need to establish a record archiving process and environment to provide proof that any out-of-pocket reimbursements were valid. This proof is required to satisfy a potential IRS audit and avoid the 20% non-qualified withdrawal penalty.
 
