@@ -1,0 +1,298 @@
+---
+title: "Amazon Raw Data Audit: #Project-FSA"
+subtitle: "Task: Amazon Ingestion & Sanitization"
+author: "Larry Mannings"
+date: last-modified
+format: 
+  html:
+    toc: true
+    code-fold: true
+    theme: cosmo
+    embed-resources: true
+execute:
+  echo: true  # Shows your code in the final report
+---
+
+# Purpose
+
+Construct a notebook for exploring the data in the raw Amazon data to help us focus on the key variables and "grimey" data (HTML, encoding issues, and outliers) before proceeding to **Step 5: Parse and Filter**.
+
+```{r}
+#| label: setup
+#| echo: true
+#| message: false
+#| warning: false
+
+library(tidyverse)    # Core data manipulation (dplyr, stringr, lubridate, etc.)
+library(readr)        # reads table data into R
+library(skimr)        # Provides descriptive statistics and data quality summaries supporting tidyverse
+library(stringi)      # R package for efficient string processing
+library(knitr)        # Power R Markdown by handling the execution of embedded R code
+library(kableExtra)   # Extends the basic functionality of tables produced by `knitr` package
+library(lubridate)    # Library that contains functions for working with date-time data
+library(scales)       # Provides functions for human readable labels for axes and legends
+set.seed(1)
+```
+
+# Data Exploration
+
+
+## Profile the dataset
+
+First we load the data and look at the **completeness** of the dataset using `skimr()`
+
+```{r}
+#| echo: true
+#| label: data-profile
+amazon_combined <- read.csv("../data/amazon_combined.csv")
+skim(amazon_combined)
+```
+
+## Key Variables
+
+A quick review of the skim statistics indicate that there are **7** of **29** variables that are useful to this project, namely:
+
+> `drive_id`        Unique identifier for the csv file ingested from Google Drive
+>
+> `currency`        Unit of exchage for purchasing goods. Primarily USD but may be CAD on occasion
+>
+> `order_id`        An Amazon-ascribed unique 17-digit number that identifies a specific purchase
+>
+> `order_date`      The timestamp when a purchase is officially placed and confirmed
+>
+> `order_status`    Status of purchase. "Closed" is the status for confirmed purchases
+>
+> `product_name`    A descriptive, often long-form title designed to identify products
+>
+> `total_amount`    The cumulative cost of the item including price and taxes
+
+### `drive_id`
+The `drive_id` variable contains unique values corresponding to the files of individual household members before the data frames were merged as one. These values will be used later to construct distinct user names associated with the observations, namely, `customer_1` and `customer_2`.
+
+```{r}
+#| echo: true
+#| label: drive-id
+
+unique(amazon_combined$drive_id)
+
+```
+
+### `currency`
+ The `currency` variable is likely populated with "USD" for this case example but it is prudent to capture other forms of currency for other customer use cases so that currency conversion can be conducted based on conditional case.
+ 
+```{r}
+#| echo: true
+#| label: currency
+
+unique(amazon_combined$currency)
+```
+### `order_id`
+ The `order_id` variable must be retained with the scrubbed dataset as it maintains traceability to the original purchase, ensuring that the customer can retrieve supporting documentation such as paid invoices. It should be noted that `order_id` has no context outside of the customer's Amazon account so it can be distributed in a public-facing data enviroment without masking. 
+ 
+### `order_date`
+ The `order_date` timestamp contains information that could be mined for consumer behavior and thus must be scrubbed for generalization as the month and year of purchase is sufficient for a public facing dataset. If desired, the end user can retrieve the actual timestamp for an item purchase referencing the `order_id`. Below is a randomly selected `order_date` observation.
+ 
+```{r}
+#| label: lst-order-date
+#| echo: true
+
+sample(amazon_combined$`order_date`, 1)
+```
+### `order_status`
+ `order_status` does not contain any privacy data, but must be retained in the dataset for the purpose of validating a purchase. For the purpose of this project only observations with order status "Closed" will remain after a filter as this status indicates the the payment was finished.
+ 
+  
+```{r}
+#| echo: true
+#| label: order-status
+
+unique(amazon_combined$`order_status`)
+```
+### `product_name`
+ Variable 'product_name' contains information that could be mined for consumer behavior and thus must be scrubbed for generalization to avoid identifying specific purchases with a user. Below is a randomly selected `product_name` observation.
+ 
+```{r}
+#| echo: true
+#| label: product-name
+
+sample(amazon_combined$`product_name`, 1)
+```
+### `total_amount`
+Lastly, the variable `total_amount` contains price data that can be mined for consumer behavior and thus must be generalized to avoid the data being used for unintended purposes. Below is a randomly selected `total_amount` observation.
+
+ 
+```{r}
+#| echo: true
+#| label: total-amount
+
+sample(amazon_combined$`total_amount`, 1)
+```
+## Key Variable Summary
+
+In summary, below is a table of the variables essential to the FSA Eligible reimbursement criteria summary and their data senstitivity impact:
+
+```{r}
+#| echo: true
+#| label: fsa-table
+
+FSA_summary <- data.frame(drive_id = "Customer Name Keyword", currency = "No Impact", order_id = "No Impact", 
+                          order_date = "Month/Date Generalize", order_status = "No Impact", 
+                          product_name = "Category Generalize", total_amount = "Mask with Randomness")
+kable(FSA_summary) |> kable_styling(bootstrap_options = c("striped", "bordered"), full_width = FALSE)
+```
+# Data Sanitization Techniqes
+
+It is worthwhile to explore how the data sanitization techniques will look before developing them in the production script. Let's reduce the dataset to include only the relevant variables first. **Note: ** Variables `order_id` and `order_status` have no sanitization impact and thus are not displayed in this section to save room.
+
+```{r}
+#| echo: true
+#| label: select-data
+
+FSA_reduced <- amazon_combined |> select(drive_id, order_date, product_name, currency, total_amount) |>
+    mutate(product_name = str_trunc(product_name, width = 20))
+head(FSA_reduced)
+```
+
+
+
+
+## `drive_id`
+
+Recall that, for `drive_id`, we want to convert the Google Drive file id corresponding  to Customer 1 or Customer 2 to the descriptor **cust_1** or **cust_2**. See the code below followed by the summary of the beginning and the end of the dataset. The variable `product_name` is withheld for the moment until privacy scrubbing can be applied.
+
+```{r}
+#| echo: true
+#| label: cust-id
+
+# Create function that converts google drive name to a corresponding customer id
+change2custid <- function(drive_names, drive_vals){
+    for(i in 1:length(drive_names)){
+        for(j in 1:length(drive_vals)){
+        if(drive_vals[j] == drive_names[i]) {
+            drive_names[i] <- paste0("cust_",j)   # convert drive id name to customer id name and return
+        }
+    }
+        
+    }
+    return(drive_names)
+    
+}
+FSA_reduced <- amazon_combined |> select(drive_id, order_date, currency, total_amount)
+df <- FSA_reduced |> rename(cust_id = drive_id) |>   # change column name to reflect customer ids
+    mutate(cust_id = change2custid(cust_id, unique(cust_id)))
+head(df, 4)
+tail(df,4)
+
+```
+
+## `order_date`
+
+The variable `order_date` should be generalized to display month and year only in the sanitized dataset. If you recall from the [`order_date` Key Variable Summary](#order_date) , the 'order-date' format is "YYYY-MM-DDTHH:MM:SSz", which is a string type that can be easily handled by the `lubridate` library to generalize the **ymd_hms** format to a **MM-YYYY** format. This is accomplished as follows:
+
+```{r}
+#| echo: true
+#| label: scrub-date
+
+
+df <- df |> mutate(order_date = ymd_hms(order_date)) |>
+    mutate(order_date = paste0(month(order_date), "-", year(order_date)))
+head(df)
+
+```
+
+## `product_name`
+
+### Filter for FSA Eligibity 
+
+The objective here is to construct a Regular Expression (regex) pattern and using this pattern in conjunction with `stringi` library tools to detect pattern matches within the `product_name` column. Thus reducing the dataset to FSA Eligible items should simply be a matter of filtering based on a string search.
+
+```{r}
+#| echo: true
+#| label: product-name-search
+
+# Add `product_name` and `order_id` back to the data frame.
+df <- df |> add_column(product_name = amazon_combined$product_name) |>
+    add_column(order_id = amazon_combined$order_id) |>
+    select(cust_id, order_id, order_date, product_name, currency, total_amount)
+
+fsa_keywords <- regex("face\\smask|FSA\\sHSA|N95\\smask|thermometer|first\\said|bandage|sunscreen|light\\stherapy|medical|
+              brace|sanitizer|tylenol|\\sadvil\\s|covid|therapy", ignore_case = TRUE) 
+fsa_candidates <- df |> filter(str_detect(product_name, fsa_keywords))  # filter dataset for FSA Eligible matches
+message("Number of FSA Eligible items found: ", nrow(fsa_candidates))
+
+
+```
+
+
+### Generalize FSA Products by Category
+
+In the [Filter for FSA Eligibility](#filter-for-fsa-eligibity) section above, we included about 15 keywords for pattern detection, but we actually want to group them into about 4 or 5 clean, broad buckets (e.g., putting all masks and sanitizers into a "Personnel Protective Equipment" category). We will use `case_when()` logic to help us in this regard. The `fsa_category` column generated by this step now permits us to represent the products in a pulblic facing dataset. The first 10 observations of this FSA-eligible filter result are tabulated.
+
+```{r}
+#| echo: true
+#| label: scrub-product-name
+
+fsa_candidates <- fsa_candidates |>
+  mutate(
+    fsa_category = case_when(
+      # Bucket 1: PPE & Prevention
+      str_detect(product_name, regex("face\\smask|N95\\smask|sanitizer|covid", ignore_case = TRUE)) ~ "PPE & Prevention",
+      
+      # Bucket 2: Medical Devices
+      str_detect(product_name, regex("thermometer|brace|light\\stherapy|therapy|medical", ignore_case = TRUE)) ~ "Medical Devices",
+      
+      # Bucket 3: First Aid & OTC Meds
+      str_detect(product_name, regex("first\\said|bandage|tylenol|advil", ignore_case = TRUE)) ~ "First Aid & OTC",
+      
+      # Bucket 4: General FSA/HSA
+      str_detect(product_name, regex("FSA\\sHSA|sunscreen", ignore_case = TRUE)) ~ "General FSA/HSA",
+      
+      # Default: If it doesn't match above, label it NA
+      TRUE ~ NA_character_
+    )
+  ) |> select(cust_id, order_id, order_date, product_name, fsa_category, currency, total_amount)
+
+# Prepare for tabulation
+df <- fsa_candidates |> select(-order_id, -product_name)
+
+kable(df[1:10, ]) |> kable_styling(bootstrap_options = c("striped", "bordered"), full_width = FALSE) #display fsa-eligible observations
+
+```
+
+## `total_amount`
+
+### Add **Noise** to mask exact price data
+
+For the final variable in our dataset, we generate random uniform random noise (+/25%) to the `total_amount` variable. This should mitigate the risk of a bad faith actor attempting to indirectly identify item purchased based on item price.
+
+```{r}
+#| echo: true
+#| warning: false
+#| label: total_amount_scrub
+
+# modify 'total_amount` from it's original value by a randomly selected +/- 25% margin
+fsa_candidates <- fsa_candidates |> mutate(total_amount = as.numeric(total_amount) * runif(n(), 0.75, 1.25)) |>
+    mutate_at(vars(total_amount), funs(dollar(.)))    # add currency symbol
+
+```
+
+# Concluding Remarks
+
+The fully scrubbed dataset is now ready for final formatting in preparation for delivery to the customer. The completed table is depicted below. Note that the public facing dataset has the majority of the `product_name` data masked.
+
+```{r}
+#| echo: true
+#| label: concluding-remarks
+
+ df2 <- fsa_candidates |>   arrange(fsa_category) # Alphabetically sort the dataset by `fsa_category`
+
+# Prepare to mask the product_name data for public facing dataset
+df3 <- df2 |> mutate(product_name = str_replace(product_name, "^(.{4}).*(.{4})$", "\\1**********\\2"))
+
+#display fsa-eligible observations
+kable(df3) |> kable_styling(bootstrap_options = c("striped", "bordered"), full_width = FALSE) |>
+# pack_rows looks at how many times each category appears and draws the headers
+  pack_rows(index = table(df2$fsa_category))
+
+```
+
