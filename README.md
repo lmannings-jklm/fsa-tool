@@ -55,7 +55,7 @@ To run this project you need R (v4.0 or higher) and RStudio Desktop installed.
 
 The source code, raw dataset, and documentation are hosted on this GitHub repository.
 
-1. Click the green Code button and select Download ZIP.
+1. Click the green **Code** button and select **Download ZIP**.
 2. Extract the ZIP file to a dedicated directory on your local machine (e.g. `C:\Documents\Project-FSA` )
 
 ## Initialize the Project
