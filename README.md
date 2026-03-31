@@ -14,6 +14,32 @@ It is worthwhile to explore how one goes about converting Amazon Order History i
 
 This project demonstrates the use of data wrangling skills to convert personal order history data into a format that can be searched for purchases that meet IRS FSA eligibility criteria. The project will leverage the R Tidyverse package to convert the raw order history data into tidy format. The data will be queried to yield the desired order history relevant to FSA eligible purchases. The order history is privacy sensitive, so we will need to sanitize the data to generalize dates, mask personal information, and obfuscate price data, while permitting the end user to utilize the output for follow on tasks.
 
+## R Packages Used
+
+The following libraries and options are called from `00_setup.R` and are required for implementation:
+
+> `tidyverse`  for data wrangling and visualization tools
+>
+> `rmarkdown`  orchestrates the process of generating multiple output formats
+>
+> `knitr`  powers R Markdown by handling the execution of embedded R code
+>
+> `kableExtra`  extends the basic functionality of tables produced by the `knitr` package
+>
+> `scales`: Provides functions for human readable labels for axes and legends
+>
+> `googledrive`  allows interaction with Google Drive directly from R
+>
+> `usethis`  automates repetitive tasks that arise during project setup and development
+>
+> `renv` helps you create reproducible environments for your R projects
+>
+> `janitor`: Contains additional "tidyverse" - oriented tools for cleaning "dirty" data
+>
+> `webshot2`: Tools for document preparation
+>
+> `pagedown`: Allows for full control of a documents borders
+
 ## Key Questions
 
 1.   How can we effectively identify and map the key variables within the raw order history to distinguish FSA-eligible purchases from non-eligible ones?
@@ -21,34 +47,55 @@ This project demonstrates the use of data wrangling skills to convert personal o
 
 # Installation and Setup
 
-## Codes and Resources
+## Prerequisites
 
--   **Editor:** RStudio 2026.01.0 Build 392
--   **R Version:** 4.5.0 (2025-04-11 ucrt)
+To run this project you need R (v4.0 or higher) and RStudio Desktop installed.
 
-## R Packages Used
+## Obtain the Project Files
 
-The following libraries and options are required to complete the assignment
+The source code, raw dataset, and documentation are hosted on this GitHub repository.
 
-> `library(tidyverse)`  for data wrangling and visualization tools
->
-> `library(rmarkdown)`  orchestrates the process of generating multiple output formats
->
-> `library(knitr)`  powers R Markdown by handling the execution of embedded R code
->
-> `library(kableExtra)`  extends the basic functionality of tables produced by the `knitr` package
->
-> `library(digest)` provides functions that creates unique “signatures” (hash sums) that represent input data
->
-> `library(googledrive)`  allows interaction with Google Drive directly from R
->
-> `library(usethis)`  automates repetitive tasks that arise during project setup and development
->
-> `library(renv)` helps you create reproducible environments for your R projects
+1. Click the green Code button and select Download ZIP.
+2. Extract the ZIP file to a dedicated directory on your local machine (e.g. `C:\Documents\Project-FSA` )
 
-## Version Control
+## Initialize the Project
 
-GitHub repository for code archival and collaboration.
+This project uses an `.Rproj` file to ensure reproducibility. By opening the project through this file, RStudio automatically sets the working directory to the project root, ensuring that all file paths (for data ingestion and exports) function correctly without the need for manual adjustment.
+
+- Navigate to your local project folder and double-click `fsa-tool.Rproj`.
+
+## Configure the Environment
+
+to ensure the project runs with the exact package versions and settings used during development, follow these three configuration steps:
+
+### A. Handle Environment Variables (`.Renviron`)
+
+The project utilizes a `.Renviron` file to manage environment variables (such as API keys for Google Drive or specific system paths).
+
+- Ensure the `.Renviron` file is located in your **project root directory**.
+- RStudio will automatically load these variables when you open the `.Rproj` file.
+
+**Note:** The code in this project provides an option to load raw data from Google Drive. If you are using your own Google Drive for storage, you may need to update the credentials within this file.
+
+### B. Restore the Package Library
+
+As noted in the `00_setup.R` script, this project uses renv to create a private, isolated libraary. This prevents verdion conflicts with you other R projects. To synchronize your local library with the project requirements, run:
+
+```{r}
+# Run this in the RStudio Console
+renv::restore()
+```
+
+This command will read the `renv.lock` file and automatically install the correct versions of `tidyverse`, `digest`, `googledrive`, and other `dependencies`.
+
+### C. Initialize the Session (`00_setup.R`)
+
+Once the packages are installed, you must initialize your R session. This script loads all required libraries, configures "blank slate" settings, and sets global options (like preventing scientific notation for Order IDs).
+
+Run the following command in your console: `source("./scripts/01_data_ingestion.R")`
+
+**You should see the message**: `Setup complete: All libraries loaded and options configured.`
+
 
 # Project Resources & Infrastructure
 
@@ -89,13 +136,42 @@ The source data is not presumed to meet [**tidy data** standards](https://cran.r
 Project Repository structure is outlined below.
 
 ``` text
-├───data
+C:.
+│   .gitignore
+│   .Rprofile
+│   fsa-tool.Rproj
+│   header-photo.png
+│   README.html
+│   README.md
+│   renv.lock
+│   tree_diagram.txt
+│
+├───assets
+│       JKLM-Logo-scaled.jpg
+│
 ├───docs
+│ 
+├───functions
+│       utils_id_mapping.R
+│
 ├───notebooks
+│       01a_data_exploration.html
+│       01a_data_exploration.qmd
+│
+├───outputs
+│       fsa_candidates_report.pdf
+│
 ├───renv
 ├───scripts
-├───secrets
-└───src
+│       00_setup.R
+│       01_data_ingestion.R
+│       Startup-packages.R
+│       utils_google_drive.R
+│
+├───src
+│
+└───trainer_data
+        Amazon_FSA_Audit_Trainer.csv
 ```
 
 # Results and Evaluation
