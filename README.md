@@ -68,14 +68,12 @@ This project uses an `.Rproj` file to ensure reproducibility. By opening the pro
 
 to ensure the project runs with the exact package versions and settings used during development, follow these three configuration steps:
 
-### A. Handle Environment Variables (`.Renviron`)
+### A. (Optional) Handle Environment Variables (`.Renviron`)
 
-The project utilizes a `.Renviron` file to manage environment variables (such as API keys for Google Drive or specific system paths).
+The code in this project provides an option to load raw data from Google Drive. The project utilizes a `.Renviron` file to manage these environment variables (such as API keys for Google Drive or specific system paths). If you are using your own Google Drive for storage, you may need to update the credentials within this file. Otherwise, this step is not necessary.
 
 - Ensure the `.Renviron` file is located in your **project root directory**.
 - RStudio will automatically load these variables when you open the `.Rproj` file.
-
-**Note:** The code in this project provides an option to load raw data from Google Drive. If you are using your own Google Drive for storage, you may need to update the credentials within this file.
 
 ### B. Restore the Package Library
 
