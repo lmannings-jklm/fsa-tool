@@ -15,42 +15,66 @@ source("./functions/utils_id_mapping.R")
 # Capture the correct project root at the start
 project_root <- getwd()
 
-# 2. Identify your Drive Folder (Use the folder name or ID)
-drive_folder <- drive_ls(path = "~/Projects/R Project: Transform Amazon Order History for FSA Reimbursements/Private/Secure_client_data_PII", pattern = "\\.csv$")
+#===============================================================================================================================
+# START Option A. Read customer dataset from Google Drive
+# comment everything between START and END if reading trainer data from local project folder
+#===============================================================================================================================
 
-# 3. Function to Download -> Read -> Cleanup
-read_drive_csv <- function(drive_file) {
-    # Create a temporary path on your local machine
-    temp_path <- tempfile(fileext = ".csv")
-    
-    # Download from Drive to that temp path
-    drive_download(drive_file, path = temp_path, overwrite = TRUE)
-    
-    # Read the CSV into R
-    message("Ingesting data into R...")
-    data <- read_csv(temp_path, col_types = cols(.default = "c")) |>
-        janitor::clean_names()
-    
-    # DELETE THE FILE from your hard drive
-    unlink(temp_path)
-    message("Temporary file destroyed.")
-    
-    return(data)
-}
+# # 2. Identify your Drive Folder (Use the folder name or ID)
+# drive_folder <- drive_ls(path = "~/Projects/R Project: Transform Amazon Order History for FSA Reimbursements/Private/Secure_client_data_PII", pattern = "\\.csv$")
+# 
+# 
+# # 3. Function to Download -> Read -> Cleanup
+# read_drive_csv <- function(drive_file) {
+#     # Create a temporary path on your local machine
+#     temp_path <- tempfile(fileext = ".csv")
+# 
+#     # Download from Drive to that temp path
+#     drive_download(drive_file, path = temp_path, overwrite = TRUE)
+# 
+#     # Read the CSV into R
+#     message("Ingesting data into R...")
+#     data <- read_csv(temp_path, col_types = cols(.default = "c")) |>
+#         janitor::clean_names()
+# 
+#     # DELETE THE FILE from your hard drive
+#     unlink(temp_path)
+#     message("Temporary file destroyed.")
+# 
+#     return(data)
+# }
+# 
+# # 4. Use map_df to iterate through the drive_folder list
+# amazon_combined <- drive_folder %>%
+#     split(.$id) %>% # Split the tibble so map sees individual files
+#     map_df(~ read_drive_csv(.x), .id = "drive_id")
+# 
+# # (Optional) Remove the Drive metadata from the environment
+# rm(drive_folder)
 
-# 4. Use map_df to iterate through the drive_folder list
-amazon_combined <- drive_folder %>%
-    split(.$id) %>% # Split the tibble so map sees individual files
-    map_df(~ read_drive_csv(.x), .id = "drive_id")
+#===============================================================================================================================
+# END Option A. 
+#===============================================================================================================================
 
-# (Optional) Remove the Drive metadata from the environment
-rm(drive_folder)
+#===============================================================================================================================
+# START Option B. Read trainer dataset from local project folder
+# comment everything between START and END if reading trainer data from Google Drive
+#===============================================================================================================================
 
+# 2. Load your raw data
+amazon_combined <- read_csv("./trainer_data/Amazon_FSA_Audit_Trainer.csv", col_types = cols(.default = "c") )|>
+    janitor::clean_names()
+
+#===============================================================================================================================
+# END Option B. 
+#===============================================================================================================================
 
 # Define the regex pattern for FSA eligible items 
 fsa_keywords <- regex("face\\smask|FSA\\sHSA|N95\\smask|thermometer|first\\said|
                      bandage|sunscreen|light\\stherapy|medical|brace|sanitizer|
-                     tylenol|\\sadvil\\s|covid|therapy", ignore_case = TRUE)
+                     allergy|pain\\srelief|eye\\sdrop|saline|medicine|cough|
+                     vapor\\srub|migraine|headache|Scholl|orthotic|laxative|
+                     hemorrhoid|heartburn|tylenol|\\sadvil\\s|covid|therapy", ignore_case = TRUE)
 
 # 5. Tidyverse Transformation
 amazon_tidy <- amazon_combined |> 
@@ -89,10 +113,11 @@ fsa_candidates <- fsa_candidates |>
             str_detect(product_name, regex("thermometer|brace|light\\stherapy|therapy|medical", ignore_case = TRUE)) ~ "Medical Devices",
             
             # Bucket 3: First Aid & OTC Meds
-            str_detect(product_name, regex("first\\said|bandage|tylenol|advil", ignore_case = TRUE)) ~ "First Aid & OTC",
+            str_detect(product_name, regex("first\\said|bandage|tylenol|advil|allergy|pain\\srelief|
+                                           eye\\sdrop|medicine|cough|laxative|hemorrhoid|heartburn", ignore_case = TRUE)) ~ "First Aid & OTC",
             
             # Bucket 4: General FSA/HSA
-            str_detect(product_name, regex("FSA\\sHSA|sunscreen", ignore_case = TRUE)) ~ "General FSA/HSA",
+            str_detect(product_name, regex("FSA\\sHSA|sunscreen|saline|Scholl|orthotic", ignore_case = TRUE)) ~ "General FSA/HSA",
             
             # Default: If it doesn't match above, label it NA
             TRUE ~ NA_character_
@@ -112,7 +137,7 @@ fsa_candidates <- fsa_candidates |>
         )
 # 8. Optional: Mask `product_name` data for public facing dataset
 # Comment if not concerned about masking `product_name` date
-# fsa_candidates <- fsa_candidates |> 
+# fsa_candidates <- fsa_candidates |>
 #     mutate(product_name = str_replace(product_name, "^(.{4}).*(.{4})$", "\\1..........\\2"))
 
 # Additional pre-export formatting required
@@ -173,7 +198,7 @@ html_table <- fsa_report_data |>
     column_spec(4, width = "40%", extra_css = "word-break: break-word;") |>
     pack_rows(index = table(fsa_report_data$fsa_category)) |>
     footnote(
-        general = "This report is for reimbursement candidate identification only. Seek support from a profession if using this report for tax purposes.",
+        general = "This report is for reimbursement candidate identification only. Seek support from a professional if using this report for tax purposes.",
         general_title = "<b>Disclaimer: </b>", 
         escape = FALSE 
     ) |>
@@ -218,7 +243,7 @@ final_html <- paste0(
     "<img src='", logo_uri, "' style='height: 60px;'>",
     "<div style='text-align: right;'>",
     "<strong style='font-size: 1.2em;'>JKLM Data Analytics</strong><br>",
-    "<span style='font-weight: bold; color: #444;'>Customer FSA Eligibility Report</span><br>",
+    "<span style='font-weight: bold; color: #444;'>Customer FSA-Eligibile Candidates Report</span><br>",
     "Report Generated: ", current_timestamp,
     "</div>",
     "</div>",
