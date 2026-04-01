@@ -176,7 +176,7 @@ C:.
 
 # Results and Evaluation
 
-The project results are captured in the R markdown file **To be completed**, which is included in this repository.
+The project results are published and maintained by [**JKLM Data Analytics**](jklmdata.net) and can be found [HERE](https://jklmdata.net/portfolio/fsa-tool/).
 
 # Acknowledgements / References
 
