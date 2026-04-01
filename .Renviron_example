@@ -1,0 +1,2 @@
+GOOGLE_DRIVE_KEY="secrets/your-google-bot-key.json"
+GDRIVE_EMAIL="r-drive-bot@your.gserviceaccount.com"
