@@ -70,10 +70,14 @@ to ensure the project runs with the exact package versions and settings used dur
 
 ### A. (Optional) Handle Environment Variables (`.Renviron`)
 
-The code in this project provides an option to load raw data from Google Drive. The project utilizes a `.Renviron` file to manage these environment variables (such as API keys for Google Drive or specific system paths). If you are using your own Google Drive for storage, you may need to update the credentials within this file. Otherwise, this step is not necessary.
+This project can pull raw data directly from Google Drive. To facilitate this securely, we use environment variables. Otherwise, this step is not necessary.
 
-- Ensure the `.Renviron` file is located in your **project root directory**.
-- RStudio will automatically load these variables when you open the `.Rproj` file.
+1. **Locate the template:** Find the file named `.Renviron_example` in the root directory.
+2. **Create your local file:** Copy this file and rename it to exactly `.Renviron`.
+3. **Update Credentials:** Open your new `.Renviron` and add your specific Google Service Account paths and emails.
+4. **Security: DO NOT** commit your `.Renviron` to version control. It is already included in the `.gitignore` to prevent sensitive API keys from being published to GitHub.
+
+_RStudio will automatically load these variables when you open the .Rproj file._
 
 ### B. Restore the Package Library
 
