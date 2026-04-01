@@ -77,7 +77,7 @@ This project can pull raw data directly from Google Drive. To facilitate this se
 3. **Update Credentials:** Open your new `.Renviron` and add your specific Google Service Account paths and emails.
 4. **Security: DO NOT** commit your `.Renviron` to version control. It is already included in the `.gitignore` to prevent sensitive API keys from being published to GitHub.
 
-_RStudio will automatically load these variables when you open the .Rproj file._
+_RStudio will automatically load these variables when you open the `.Rproj` file._
 
 ### B. Restore the Package Library
 
