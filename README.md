@@ -140,6 +140,7 @@ Project Repository structure is outlined below.
 ``` text
 C:.
 │   .gitignore
+|   .Renviron_example
 │   .Rprofile
 │   fsa-tool.Rproj
 │   header-photo.png
