@@ -4,7 +4,7 @@
 # Author: Larry Mannings
 # Organization: JKLM Data Analytics
 # Date: 2026-03-18
-# ==============================================================================
+# ==============================================================================22
 
 # 1. Load Environment & Libraries
 source("./scripts/00_setup.R")
@@ -15,42 +15,45 @@ source("./functions/utils_id_mapping.R")
 # Capture the correct project root at the start
 project_root <- getwd()
 
+# Set browser path
+browser_path <- "C:/Program Files/Google/Chrome/Application/chrome.exe"
+
 #===============================================================================================================================
 # START Option A. Read customer dataset from Google Drive
 # comment everything between START and END if reading trainer data from local project folder
 #===============================================================================================================================
 
-# # 2. Identify your Drive Folder (Use the folder name or ID)
-# drive_folder <- drive_ls(path = "~/Projects/R Project: Transform Amazon Order History for FSA Reimbursements/Private/Secure_client_data_PII", pattern = "\\.csv$")
-# 
-# 
-# # 3. Function to Download -> Read -> Cleanup
-# read_drive_csv <- function(drive_file) {
-#     # Create a temporary path on your local machine
-#     temp_path <- tempfile(fileext = ".csv")
-# 
-#     # Download from Drive to that temp path
-#     drive_download(drive_file, path = temp_path, overwrite = TRUE)
-# 
-#     # Read the CSV into R
-#     message("Ingesting data into R...")
-#     data <- read_csv(temp_path, col_types = cols(.default = "c")) |>
-#         janitor::clean_names()
-# 
-#     # DELETE THE FILE from your hard drive
-#     unlink(temp_path)
-#     message("Temporary file destroyed.")
-# 
-#     return(data)
-# }
-# 
-# # 4. Use map_df to iterate through the drive_folder list
-# amazon_combined <- drive_folder %>%
-#     split(.$id) %>% # Split the tibble so map sees individual files
-#     map_df(~ read_drive_csv(.x), .id = "drive_id")
-# 
-# # (Optional) Remove the Drive metadata from the environment
-# rm(drive_folder)
+# 2. Identify your Drive Folder (Use the folder name or ID)
+drive_folder <- drive_ls(path = "~/Projects/R Project: Transform Amazon Order History for FSA Reimbursements/Private/Secure_client_data_PII", pattern = "\\.csv$")
+
+
+# 3. Function to Download -> Read -> Cleanup
+read_drive_csv <- function(drive_file) {
+    # Create a temporary path on your local machine
+    temp_path <- tempfile(fileext = ".csv")
+
+    # Download from Drive to that temp path
+    drive_download(drive_file, path = temp_path, overwrite = TRUE)
+
+    # Read the CSV into R
+    message("Ingesting data into R...")
+    data <- read_csv(temp_path, col_types = cols(.default = "c")) |>
+        janitor::clean_names()
+
+    # DELETE THE FILE from your hard drive
+    unlink(temp_path)
+    message("Temporary file destroyed.")
+
+    return(data)
+}
+
+# 4. Use map_df to iterate through the drive_folder list
+amazon_combined <- drive_folder %>%
+    split(.$id) %>% # Split the tibble so map sees individual files
+    map_df(~ read_drive_csv(.x), .id = "drive_id")
+
+# (Optional) Remove the Drive metadata from the environment
+rm(drive_folder)
 
 #===============================================================================================================================
 # END Option A. 
@@ -61,9 +64,9 @@ project_root <- getwd()
 # comment everything between START and END if reading trainer data from Google Drive
 #===============================================================================================================================
 
-# 2. Load your raw data
-amazon_combined <- read_csv("./trainer_data/Amazon_FSA_Audit_Trainer.csv", col_types = cols(.default = "c") )|>
-    janitor::clean_names()
+# # 2. Load your raw data
+# amazon_combined <- read_csv("./trainer_data/Amazon_FSA_Audit_Trainer.csv", col_types = cols(.default = "c") )|>
+#     janitor::clean_names()
 
 #===============================================================================================================================
 # END Option B. 
@@ -74,7 +77,8 @@ fsa_keywords <- regex("face\\smask|FSA\\sHSA|N95\\smask|thermometer|first\\said|
                      bandage|sunscreen|light\\stherapy|medical|brace|sanitizer|
                      allergy|pain\\srelief|eye\\sdrop|saline|medicine|cough|
                      vapor\\srub|migraine|headache|Scholl|orthotic|laxative|
-                     hemorrhoid|heartburn|tylenol|\\sadvil\\s|covid|therapy", ignore_case = TRUE)
+                     hemorrhoid|heartburn|tylenol|\\sadvil\\s|covid|therapy|
+                     ointment|aquaphor", ignore_case = TRUE)
 
 # 5. Tidyverse Transformation
 amazon_tidy <- amazon_combined |> 
@@ -117,7 +121,7 @@ fsa_candidates <- fsa_candidates |>
                                            eye\\sdrop|medicine|cough|laxative|hemorrhoid|heartburn", ignore_case = TRUE)) ~ "First Aid & OTC",
             
             # Bucket 4: General FSA/HSA
-            str_detect(product_name, regex("FSA\\sHSA|sunscreen|saline|Scholl|orthotic", ignore_case = TRUE)) ~ "General FSA/HSA",
+            str_detect(product_name, regex("FSA\\sHSA|sunscreen|saline|Scholl|orthotic|ointment|aquaphor", ignore_case = TRUE)) ~ "General FSA/HSA",
             
             # Default: If it doesn't match above, label it NA
             TRUE ~ NA_character_
